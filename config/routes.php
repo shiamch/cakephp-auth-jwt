@@ -21,8 +21,10 @@
  * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
+use Cake\Http\Middleware\CsrfProtectionMiddleware;
 use Cake\Routing\Route\DashedRoute;
 use Cake\Routing\RouteBuilder;
+use Cake\Routing\Router;
 
 return static function (RouteBuilder $routes) {
     /*
@@ -45,6 +47,17 @@ return static function (RouteBuilder $routes) {
     $routes->setRouteClass(DashedRoute::class);
 
     $routes->scope('/', function (RouteBuilder $builder) {
+        // Register scoped middleware for in scopes.
+        $builder->registerMiddleware('csrf', new CsrfProtectionMiddleware([
+            'httpOnly' => true,
+        ]));
+
+        /*
+        * Apply a middleware to the current route scope.
+        * Requires middleware to be registered through `Application::routes()` with `registerMiddleware()`
+        */
+        $builder->applyMiddleware('csrf');
+        
         /*
          * Here, we are connecting '/' (base path) to a controller called 'Pages',
          * its action called 'display', and we pass a param to select the view file
@@ -71,6 +84,11 @@ return static function (RouteBuilder $routes) {
          * routes you want in your application.
          */
         $builder->fallbacks();
+    });
+
+    Router::prefix('admin', function (RouteBuilder $routes) {
+        $routes->connect('/', ['controller' => 'Users', 'action' => 'index']);
+        $routes->fallbacks(DashedRoute::class);
     });
 
     /*
